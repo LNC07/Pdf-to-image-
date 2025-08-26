@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PDF to JPG (ZIP)</title>
+<title>PDF to High Quality JPG (ZIP)</title>
 <style>
   body {
     font-family: Arial, sans-serif;
@@ -49,7 +49,7 @@
 </head>
 <body>
 <div class="container">
-  <h1>📄 PDF → JPG (ZIP)</h1>
+  <h1>📄 PDF → High Quality JPG (ZIP)</h1>
   <input type="file" id="pdfFile" accept="application/pdf">
   <button onclick="convertPDF()">Convert</button>
   <a id="zipDownload" class="download-btn">⬇️ Download All (ZIP)</a>
@@ -66,7 +66,6 @@ async function convertPDF() {
   const file = document.getElementById("pdfFile").files[0];
   if(!file){ alert("Upload PDF first!"); return; }
 
-  // PDF ফাইলের নাম বের করি (এক্সটেনশন বাদ দিয়ে)
   const baseName = file.name.replace(/\.pdf$/i,"") || "converted";
 
   const reader = new FileReader();
@@ -80,7 +79,9 @@ async function convertPDF() {
 
     for(let i=1; i<=pdf.numPages; i++){
       const page = await pdf.getPage(i);
-      const scale = 3; // High quality
+
+      // scale বাড়ানো (High resolution)
+      const scale = 5; 
       const viewport = page.getViewport({scale: scale});
 
       const canvas = document.createElement("canvas");
@@ -93,8 +94,8 @@ async function convertPDF() {
       // show preview
       outputDiv.appendChild(canvas);
 
-      // Convert canvas to JPG blob
-      const blob = await new Promise(res => canvas.toBlob(res, "image/jpeg", 0.92));
+      // Convert canvas to JPG blob (max quality)
+      const blob = await new Promise(res => canvas.toBlob(res, "image/jpeg", 1.0));
 
       // Add to zip with PDF name
       zip.file(`${baseName}_${i}.jpg`, blob);
