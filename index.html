@@ -66,6 +66,9 @@ async function convertPDF() {
   const file = document.getElementById("pdfFile").files[0];
   if(!file){ alert("Upload PDF first!"); return; }
 
+  // PDF ফাইলের নাম বের করি (এক্সটেনশন বাদ দিয়ে)
+  const baseName = file.name.replace(/\.pdf$/i,"") || "converted";
+
   const reader = new FileReader();
   reader.onload = async function(e){
     const typedarray = new Uint8Array(e.target.result);
@@ -93,15 +96,15 @@ async function convertPDF() {
       // Convert canvas to JPG blob
       const blob = await new Promise(res => canvas.toBlob(res, "image/jpeg", 0.92));
 
-      // Add to zip
-      zip.file(`page_${i}.jpg`, blob);
+      // Add to zip with PDF name
+      zip.file(`${baseName}_${i}.jpg`, blob);
     }
 
     // Generate ZIP
     const zipBlob = await zip.generateAsync({type:"blob"});
     const zipLink = document.getElementById("zipDownload");
     zipLink.href = URL.createObjectURL(zipBlob);
-    zipLink.download = (file.name.replace(/\.pdf$/i,"") || "converted") + "_pages.zip";
+    zipLink.download = baseName + "_pages.zip";
     zipLink.style.display = "block";
   };
   reader.readAsArrayBuffer(file);
