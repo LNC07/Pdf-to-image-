@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PDF to Ultra High Quality JPG (ZIP)</title>
+<title>PDF to Custom Quality JPG (ZIP)</title>
 <style>
   body {
     font-family: Arial, sans-serif;
@@ -16,11 +16,11 @@
     background: rgba(255,255,255,0.1);
     padding: 25px;
     border-radius: 14px;
-    max-width: 650px;
+    max-width: 700px;
     margin: auto;
     box-shadow: 0 8px 20px rgba(0,0,0,0.5);
   }
-  input, button {
+  input, button, select {
     margin: 12px;
     padding: 12px 18px;
     border-radius: 8px;
@@ -44,13 +44,29 @@
     font-weight: bold;
   }
   .download-btn:hover { background: #e68900; }
-  canvas { margin:10px auto; max-width:100%; border:2px solid rgba(255,255,255,0.2); border-radius:8px; }
+  canvas, img { margin:10px auto; max-width:100%; border:2px solid rgba(255,255,255,0.2); border-radius:8px; }
+  label { display:block; margin-top:10px; font-size:14px; }
 </style>
 </head>
 <body>
 <div class="container">
-  <h1>📄 PDF → Ultra High Quality JPG (ZIP)</h1>
+  <h1>📄 PDF → Custom Quality JPG (ZIP)</h1>
   <input type="file" id="pdfFile" accept="application/pdf">
+
+  <!-- Scale control -->
+  <label for="scaleRange">🔍 Resolution Scale: <span id="scaleVal">5</span></label>
+  <input type="range" id="scaleRange" min="3" max="12" step="1" value="5">
+
+  <!-- Quality control -->
+  <label for="qualitySelect">🖼️ JPEG Quality:</label>
+  <select id="qualitySelect">
+    <option value="1.0">1.0 (Maximum)</option>
+    <option value="0.95">0.95 (Very High)</option>
+    <option value="0.9">0.90 (High)</option>
+    <option value="0.85">0.85 (Good)</option>
+  </select>
+
+  <br>
   <button onclick="convertPDF()">Convert</button>
   <a id="zipDownload" class="download-btn">⬇️ Download All (ZIP)</a>
   <div id="output"></div>
@@ -62,11 +78,19 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
 <script>
+// scale slider value দেখানো
+document.getElementById("scaleRange").addEventListener("input", function(){
+  document.getElementById("scaleVal").innerText = this.value;
+});
+
 async function convertPDF() {
   const file = document.getElementById("pdfFile").files[0];
   if(!file){ alert("Upload PDF first!"); return; }
 
   const baseName = file.name.replace(/\.pdf$/i,"") || "converted";
+
+  const scale = parseInt(document.getElementById("scaleRange").value); // custom scale
+  const quality = parseFloat(document.getElementById("qualitySelect").value); // custom quality
 
   const reader = new FileReader();
   reader.onload = async function(e){
@@ -79,9 +103,6 @@ async function convertPDF() {
 
     for(let i=1; i<=pdf.numPages; i++){
       const page = await pdf.getPage(i);
-
-      // scale অনেক বড় (Ultra High Resolution)
-      const scale = 10;  
       const viewport = page.getViewport({scale: scale});
 
       const canvas = document.createElement("canvas");
@@ -91,14 +112,14 @@ async function convertPDF() {
 
       await page.render({canvasContext: context, viewport: viewport}).promise;
 
-      // show preview (low scale for browser only)
+      // ছোট preview দেখাব (medium quality যাতে browser hang না করে)
       const preview = document.createElement("img");
       preview.src = canvas.toDataURL("image/jpeg", 0.7);
       preview.style.maxWidth = "100%";
       outputDiv.appendChild(preview);
 
-      // Convert canvas to JPG blob (max quality)
-      const blob = await new Promise(res => canvas.toBlob(res, "image/jpeg", 1.0));
+      // Convert canvas to JPG blob with chosen quality
+      const blob = await new Promise(res => canvas.toBlob(res, "image/jpeg", quality));
 
       // Add to zip
       zip.file(`${baseName}_${i}.jpg`, blob);
