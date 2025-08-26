@@ -1,14 +1,13 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PDF to Super High Quality Image</title>
+<title>PDF to High-Resolution Image</title>
 <style>
-body { font-family: Arial; background: linear-gradient(135deg, #1f1c2c, #928dab); color: white; text-align: center; padding: 50px; }
-.container { max-width: 650px; margin:auto; background: rgba(255,255,255,0.1); padding:30px; border-radius:15px; box-shadow:0 8px 20px rgba(0,0,0,0.5);}
-input, button { margin: 15px; padding: 12px; border-radius:8px; border:none; font-size:16px; }
+body { font-family: Arial; background: #1f1c2c; color:white; text-align:center; padding:50px;}
+.container { max-width:700px; margin:auto; background: rgba(255,255,255,0.1); padding:30px; border-radius:15px; box-shadow:0 8px 20px rgba(0,0,0,0.5);}
+input, button { margin:15px; padding:12px; border-radius:8px; border:none; font-size:16px;}
 button { background:#27ae60; cursor:pointer; color:white;}
 button:hover { background:#2ecc71;}
 .page-container { margin-top:20px;}
@@ -19,7 +18,7 @@ canvas { margin-bottom:20px; border:2px solid white; border-radius:10px; max-wid
 </head>
 <body>
 <div class="container">
-<h1>📄 PDF to Super High Quality Image</h1>
+<h1>📄 PDF → Full Resolution Image</h1>
 <input type="file" id="pdfFile" accept="application/pdf">
 <button onclick="convertPDF()">Convert</button>
 <div id="output"></div>
@@ -41,9 +40,8 @@ async function convertPDF(){
     for(let i=1; i<=pdf.numPages; i++){
       const page = await pdf.getPage(i);
 
-      // High DPI scale (4x) → zoom safe
-      const scale = 4;
-      const viewport = page.getViewport({scale: scale});
+      // Original scale for max quality
+      const viewport = page.getViewport({ scale: 2.5 });
 
       const canvas = document.createElement("canvas");
       const context = canvas.getContext("2d");
@@ -51,10 +49,9 @@ async function convertPDF(){
       canvas.width = viewport.width;
 
       await page.render({canvasContext: context, viewport: viewport}).promise;
-
       outputDiv.appendChild(canvas);
 
-      // Create download link using Blob for high-quality image
+      // Download button (high-res)
       canvas.toBlob(function(blob){
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
