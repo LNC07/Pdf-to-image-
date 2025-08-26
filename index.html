@@ -1,66 +1,25 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PDF to Image High Quality</title>
+<title>PDF to Super High Quality Image</title>
 <style>
-body {
-  font-family: Arial, sans-serif;
-  background: linear-gradient(to right, #1f1c2c, #928dab);
-  color: white;
-  text-align: center;
-  padding: 50px;
-}
-.container {
-  background: rgba(255,255,255,0.1);
-  padding: 30px;
-  border-radius: 15px;
-  max-width: 600px;
-  margin: auto;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.5);
-}
-input, button {
-  margin: 15px;
-  padding: 12px;
-  border-radius: 8px;
-  border: none;
-  font-size: 16px;
-}
-button {
-  background: #27ae60;
-  color: white;
-  cursor: pointer;
-}
-button:hover {
-  background: #2ecc71;
-}
-.page-container {
-  margin-top: 20px;
-}
-canvas {
-  margin-bottom: 20px;
-  border: 2px solid white;
-  border-radius: 10px;
-  max-width: 100%;
-}
-.download-btn {
-  display: block;
-  margin: 10px auto 30px;
-  background: #ff9800;
-  color: white;
-  padding: 10px 20px;
-  text-decoration: none;
-  border-radius: 8px;
-}
-.download-btn:hover {
-  background: #e68900;
-}
+body { font-family: Arial; background: linear-gradient(135deg, #1f1c2c, #928dab); color: white; text-align: center; padding: 50px; }
+.container { max-width: 650px; margin:auto; background: rgba(255,255,255,0.1); padding:30px; border-radius:15px; box-shadow:0 8px 20px rgba(0,0,0,0.5);}
+input, button { margin: 15px; padding: 12px; border-radius:8px; border:none; font-size:16px; }
+button { background:#27ae60; cursor:pointer; color:white;}
+button:hover { background:#2ecc71;}
+.page-container { margin-top:20px;}
+canvas { margin-bottom:20px; border:2px solid white; border-radius:10px; max-width:100%;}
+.download-btn { display:block; margin:10px auto 30px; background:#ff9800; color:white; padding:10px 20px; text-decoration:none; border-radius:8px;}
+.download-btn:hover { background:#e68900;}
 </style>
 </head>
 <body>
 <div class="container">
-<h1>📄 PDF to High Quality Image</h1>
+<h1>📄 PDF to Super High Quality Image</h1>
 <input type="file" id="pdfFile" accept="application/pdf">
 <button onclick="convertPDF()">Convert</button>
 <div id="output"></div>
@@ -68,7 +27,7 @@ canvas {
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.min.js"></script>
 <script>
-async function convertPDF() {
+async function convertPDF(){
   const file = document.getElementById("pdfFile").files[0];
   if(!file){ alert("Upload PDF first!"); return; }
 
@@ -82,8 +41,8 @@ async function convertPDF() {
     for(let i=1; i<=pdf.numPages; i++){
       const page = await pdf.getPage(i);
 
-      // High resolution scale (2x)
-      const scale = 3;
+      // High DPI scale (4x) → zoom safe
+      const scale = 4;
       const viewport = page.getViewport({scale: scale});
 
       const canvas = document.createElement("canvas");
@@ -95,13 +54,15 @@ async function convertPDF() {
 
       outputDiv.appendChild(canvas);
 
-      // Create download link
-      const link = document.createElement("a");
-      link.href = canvas.toDataURL("image/png");
-      link.download = `page_${i}.png`;
-      link.innerText = `📥 Download Page ${i}`;
-      link.className = "download-btn";
-      outputDiv.appendChild(link);
+      // Create download link using Blob for high-quality image
+      canvas.toBlob(function(blob){
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `page_${i}.png`;
+        link.innerText = `📥 Download Page ${i}`;
+        link.className = "download-btn";
+        outputDiv.appendChild(link);
+      }, "image/png");
     }
   };
   reader.readAsArrayBuffer(file);
