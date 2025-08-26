@@ -3,22 +3,54 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PDF to High-Resolution Image</title>
+<title>PDF → Ultra High-Resolution Images</title>
 <style>
-body { font-family: Arial; background: #1f1c2c; color:white; text-align:center; padding:50px;}
-.container { max-width:700px; margin:auto; background: rgba(255,255,255,0.1); padding:30px; border-radius:15px; box-shadow:0 8px 20px rgba(0,0,0,0.5);}
-input, button { margin:15px; padding:12px; border-radius:8px; border:none; font-size:16px;}
-button { background:#27ae60; cursor:pointer; color:white;}
-button:hover { background:#2ecc71;}
-.page-container { margin-top:20px;}
-canvas { margin-bottom:20px; border:2px solid white; border-radius:10px; max-width:100%;}
-.download-btn { display:block; margin:10px auto 30px; background:#ff9800; color:white; padding:10px 20px; text-decoration:none; border-radius:8px;}
-.download-btn:hover { background:#e68900;}
+body {
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg,#1f1c2c,#928dab);
+    color:white;
+    text-align:center;
+    padding:50px;
+}
+.container {
+    max-width:700px;
+    margin:auto;
+    background: rgba(255,255,255,0.1);
+    padding:30px;
+    border-radius:15px;
+    box-shadow:0 8px 20px rgba(0,0,0,0.5);
+}
+input, button {
+    margin:15px;
+    padding:12px;
+    border-radius:8px;
+    border:none;
+    font-size:16px;
+}
+button {
+    background:#27ae60;
+    cursor:pointer;
+    color:white;
+}
+button:hover { background:#2ecc71; }
+h1 { font-size:24px; margin-bottom:20px; }
+canvas { margin:20px 0; border:2px solid white; border-radius:10px; max-width:100%; }
+.download-btn {
+    display:block;
+    margin:10px auto;
+    background:#ff9800;
+    color:white;
+    padding:10px 20px;
+    text-decoration:none;
+    border-radius:8px;
+    max-width:300px;
+}
+.download-btn:hover { background:#e68900; }
 </style>
 </head>
 <body>
 <div class="container">
-<h1>📄 PDF → Full Resolution Image</h1>
+<h1>📄 PDF → Ultra High-Resolution Images</h1>
 <input type="file" id="pdfFile" accept="application/pdf">
 <button onclick="convertPDF()">Convert</button>
 <div id="output"></div>
@@ -27,42 +59,43 @@ canvas { margin-bottom:20px; border:2px solid white; border-radius:10px; max-wid
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.min.js"></script>
 <script>
 async function convertPDF(){
-  const file = document.getElementById("pdfFile").files[0];
-  if(!file){ alert("Upload PDF first!"); return; }
+    const file = document.getElementById("pdfFile").files[0];
+    if(!file){ alert("Upload PDF first!"); return; }
 
-  const reader = new FileReader();
-  reader.onload = async function(e){
-    const typedarray = new Uint8Array(e.target.result);
-    const pdf = await pdfjsLib.getDocument(typedarray).promise;
-    const outputDiv = document.getElementById("output");
-    outputDiv.innerHTML = "";
+    const reader = new FileReader();
+    reader.onload = async function(e){
+        const typedarray = new Uint8Array(e.target.result);
+        const pdf = await pdfjsLib.getDocument(typedarray).promise;
+        const outputDiv = document.getElementById("output");
+        outputDiv.innerHTML = "";
 
-    for(let i=1; i<=pdf.numPages; i++){
-      const page = await pdf.getPage(i);
+        for(let i=1; i<=pdf.numPages; i++){
+            const page = await pdf.getPage(i);
 
-      // Original scale for max quality
-      const viewport = page.getViewport({ scale: 2.5 });
+            // Ultra high quality 10x scale
+            const scale = 10; 
+            const viewport = page.getViewport({ scale: scale });
 
-      const canvas = document.createElement("canvas");
-      const context = canvas.getContext("2d");
-      canvas.height = viewport.height;
-      canvas.width = viewport.width;
+            const canvas = document.createElement("canvas");
+            const context = canvas.getContext("2d");
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
 
-      await page.render({canvasContext: context, viewport: viewport}).promise;
-      outputDiv.appendChild(canvas);
+            await page.render({canvasContext: context, viewport: viewport}).promise;
+            outputDiv.appendChild(canvas);
 
-      // Download button (high-res)
-      canvas.toBlob(function(blob){
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = `page_${i}.png`;
-        link.innerText = `📥 Download Page ${i}`;
-        link.className = "download-btn";
-        outputDiv.appendChild(link);
-      }, "image/png");
-    }
-  };
-  reader.readAsArrayBuffer(file);
+            // Download button for each page
+            canvas.toBlob(function(blob){
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = `page_${i}.png`;
+                link.innerText = `📥 Download Page ${i}`;
+                link.className = "download-btn";
+                outputDiv.appendChild(link);
+            }, "image/png");
+        }
+    };
+    reader.readAsArrayBuffer(file);
 }
 </script>
 </body>
