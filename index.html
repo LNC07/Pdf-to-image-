@@ -1,111 +1,169 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PDF to Image High Quality</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PDF to JPG (ZIP) — High Quality</title>
 <style>
-body {
-  font-family: Arial, sans-serif;
-  background: linear-gradient(to right, #1f1c2c, #928dab);
-  color: white;
-  text-align: center;
-  padding: 50px;
-}
-.container {
-  background: rgba(255,255,255,0.1);
-  padding: 30px;
-  border-radius: 15px;
-  max-width: 600px;
-  margin: auto;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.5);
-}
-input, button {
-  margin: 15px;
-  padding: 12px;
-  border-radius: 8px;
-  border: none;
-  font-size: 16px;
-}
-button {
-  background: #27ae60;
-  color: white;
-  cursor: pointer;
-}
-button:hover {
-  background: #2ecc71;
-}
-.page-container {
-  margin-top: 20px;
-}
-canvas {
-  margin-bottom: 20px;
-  border: 2px solid white;
-  border-radius: 10px;
-  max-width: 100%;
-}
-.download-btn {
-  display: block;
-  margin: 10px auto 30px;
-  background: #ff9800;
-  color: white;
-  padding: 10px 20px;
-  text-decoration: none;
-  border-radius: 8px;
-}
-.download-btn:hover {
-  background: #e68900;
-}
+  body {
+    font-family: Arial, sans-serif;
+    background: linear-gradient(to right, #1f1c2c, #928dab);
+    color: white;
+    text-align: center;
+    padding: 40px;
+  }
+  .container {
+    background: rgba(255,255,255,0.08);
+    padding: 28px;
+    border-radius: 14px;
+    max-width: 700px;
+    margin: auto;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+  }
+  input, button, select {
+    margin: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: none;
+    font-size: 15px;
+  }
+  button {
+    background: #27ae60;
+    color: white;
+    cursor: pointer;
+  }
+  button:hover { background: #2ecc71; }
+  .page-container { margin-top: 18px; display:flex; flex-direction:column; align-items:center; }
+  canvas { margin-bottom: 12px; border-radius:8px; max-width:100%; border:2px solid rgba(255,255,255,0.15); }
+  .download-btn { display:block; margin:10px auto 22px; background:#ff9800; color:white; padding:10px 20px; text-decoration:none; border-radius:8px; }
+  .status { margin-top:10px; font-size:14px; color:#f1f1f1; }
+  .progress-bar { width:100%; background: rgba(255,255,255,0.12); height:12px; border-radius:8px; overflow:hidden; margin-top:8px; }
+  .progress-fill { height:100%; width:0%; background: rgba(255,255,255,0.85); transition: width 0.2s ease; }
+  label { font-size:14px; margin-left:6px; }
 </style>
 </head>
 <body>
 <div class="container">
-<h1>📄 PDF to High Quality Image</h1>
-<input type="file" id="pdfFile" accept="application/pdf">
-<button onclick="convertPDF()">Convert</button>
-<div id="output"></div>
+  <h1>📄 PDF → JPG (ZIP) — High Quality</h1>
+  <input type="file" id="pdfFile" accept="application/pdf" />
+  <select id="qualitySelect" title="JPEG quality">
+    <option value="0.92">JPEG Quality: 0.92 (High)</option>
+    <option value="0.85">JPEG Quality: 0.85 (Good)</option>
+    <option value="0.75">JPEG Quality: 0.75 (Medium)</option>
+  </select>
+  <br/>
+  <button id="convertBtn">Convert & Download ZIP</button>
+  <div class="status" id="status">Status: Ready</div>
+  <div class="progress-bar" style="display:none" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
+
+  <div id="output" class="page-container"></div>
 </div>
 
+<!-- Libraries -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
 <script>
-async function convertPDF() {
-  const file = document.getElementById("pdfFile").files[0];
-  if(!file){ alert("Upload PDF first!"); return; }
+const convertBtn = document.getElementById('convertBtn');
+const pdfInput = document.getElementById('pdfFile');
+const outputDiv = document.getElementById('output');
+const statusEl = document.getElementById('status');
+const progressBar = document.getElementById('progressBar');
+const progressFill = document.getElementById('progressFill');
+const qualitySelect = document.getElementById('qualitySelect');
+
+function setStatus(text) {
+  statusEl.innerText = 'Status: ' + text;
+}
+
+function setProgress(pct) {
+  progressBar.style.display = 'block';
+  progressFill.style.width = pct + '%';
+}
+
+async function canvasToJpegBlob(canvas, quality) {
+  return await new Promise((res) => {
+    // toBlob is async and gives better memory profile than toDataURL for big images
+    canvas.toBlob((blob) => res(blob), 'image/jpeg', quality);
+  });
+}
+
+convertBtn.addEventListener('click', async () => {
+  const file = pdfInput.files[0];
+  if (!file) { alert('প্রথমে একটি PDF আপলোড করো।'); return; }
+
+  setStatus('Loading PDF...');
+  outputDiv.innerHTML = '';
+  progressBar.style.display = 'none';
+  progressFill.style.width = '0%';
 
   const reader = new FileReader();
-  reader.onload = async function(e){
-    const typedarray = new Uint8Array(e.target.result);
-    const pdf = await pdfjsLib.getDocument(typedarray).promise;
-    const outputDiv = document.getElementById("output");
-    outputDiv.innerHTML = "";
+  reader.onload = async (e) => {
+    try {
+      const typedarray = new Uint8Array(e.target.result);
+      const pdf = await pdfjsLib.getDocument(typedarray).promise;
+      const total = pdf.numPages;
+      setStatus(`PDF loaded — ${total} page(s).`);
 
-    for(let i=1; i<=pdf.numPages; i++){
-      const page = await pdf.getPage(i);
+      const zip = new JSZip();
+      const quality = parseFloat(qualitySelect.value) || 0.92;
+      // option: folder inside zip
+      const imgFolder = zip.folder('images');
 
-      // High resolution scale (2x)
-      const scale = 3;
-      const viewport = page.getViewport({scale: scale});
+      for (let i = 1; i <= total; i++) {
+        setStatus(`Rendering page ${i} of ${total}...`);
+        // render each page at a high scale
+        const page = await pdf.getPage(i);
+        const scale = 3; // high quality
+        const viewport = page.getViewport({ scale: scale });
 
-      const canvas = document.createElement("canvas");
-      const context = canvas.getContext("2d");
-      canvas.height = viewport.height;
-      canvas.width = viewport.width;
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = Math.round(viewport.width);
+        canvas.height = Math.round(viewport.height);
 
-      await page.render({canvasContext: context, viewport: viewport}).promise;
+        await page.render({ canvasContext: ctx, viewport: viewport }).promise;
 
-      outputDiv.appendChild(canvas);
+        // show small preview (optional)
+        outputDiv.appendChild(canvas);
 
-      // Create download link
-      const link = document.createElement("a");
-      link.href = canvas.toDataURL("image/png");
-      link.download = `page_${i}.png`;
-      link.innerText = `📥 Download Page ${i}`;
-      link.className = "download-btn";
-      outputDiv.appendChild(link);
+        // convert canvas -> jpeg blob
+        setStatus(`Converting page ${i} to JPG...`);
+        const blob = await canvasToJpegBlob(canvas, quality);
+
+        // add to zip
+        const filename = `page_${i}.jpg`;
+        imgFolder.file(filename, blob);
+
+        // update progress
+        const pct = Math.round((i / total) * 70); // 0-70% for render+convert
+        setProgress(pct);
+      }
+
+      setStatus('Generating ZIP file...');
+      setProgress(80);
+
+      // generate the zip (async)
+      const zipBlob = await zip.generateAsync({ type: 'blob' }, (metadata) => {
+        // metadata.percent is 0..100 for zip compression stage
+        const zipPct = Math.round(80 + metadata.percent * 0.2); // map to 80..100
+        setProgress(zipPct);
+      });
+
+      setStatus('Preparing download...');
+      saveAs(zipBlob, (file.name ? file.name.replace(/\.pdf$/i, '') : 'converted') + '_jpg_pages.zip');
+      setProgress(100);
+      setStatus('Done — ZIP downloaded.');
+    } catch (err) {
+      console.error(err);
+      alert('কিছু সমস্যা হয়েছে: ' + (err.message || err));
+      setStatus('Error');
     }
   };
+
   reader.readAsArrayBuffer(file);
-}
+});
 </script>
 </body>
 </html>
